@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
+  <!-- Primary SEO Meta Tags (Google Search Ranking) -->
+  <title>Gopu Creative Studio Pro - Free Online ID Card, CV & Document Editor</title>
+  <meta name="title" content="Gopu Creative Studio Pro - Free Online ID Card, CV & Document Editor">
+  <meta name="description" content="Free online document and ID card editor created by Gopu. Edit ABHA cards, PAN cards, CVs, and certificates. Rotate, zoom, modify typography, replace photos, and export high-definition clean PDF and JPG files without visible borders.">
+  <meta name="keywords" content="Gopu Creative Studio, online document editor, edit ABHA card online, PAN card editor, ID card text change, online photoshop free, free certificate editor, photo overlay tool, PDF editor online">
+  <meta name="author" content="Gopu">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://gopustudio.vercel.app">
+
+  <!-- Open Graph / Facebook / WhatsApp Preview -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://gopustudio.vercel.app">
+  <meta property="og:title" content="Gopu Creative Studio Pro - Professional Online Document Customizer">
+  <meta property="og:description" content="Edit any document, ID card, or CV right from your browser. Full Photoshop-style text and image controls with zero export artifacts.">
+  <meta property="og:image" content="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/svgs/solid/wand-magic-sparkles.svg">
+
+  <!-- Twitter Meta Tags -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://gopustudio.vercel.app">
+  <meta property="twitter:title" content="Gopu Creative Studio Pro - Document Editor">
+  <meta property="twitter:description" content="Powerful online precision editor for IDs, certificates, and resumes.">
+
+  <!-- Mobile Browser Theme Color -->
+  <meta name="theme-color" content="#080b14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <!-- UI & Modern Fonts -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Bengali:wght@400;600;700&family=Poppins:wght@400;600;700;800&family=Roboto:wght@400;500;700&family=Tiro+Bangla&family=Cinzel:wght@700&display=swap" rel="stylesheet">
+  
+  <!-- Export & Processing Engines -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    body { 
+      font-family: 'Inter', sans-serif;
+      background: #080b14;
+      overflow-x: hidden;
+      touch-action: pan-x pan-y;
+    }
+
+    /* Dynamic Futuristic Ambient Background */
+    .bg-mesh {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: 
+        radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.18), transparent 45%),
+        radial-gradient(circle at 85% 85%, rgba(236, 72, 153, 0.15), transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.08), transparent 50%),
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+      animation: ambientPulse 18s ease-in-out infinite alternate;
+    }
+
+    @keyframes ambientPulse {
+      0% { transform: scale(1); filter: hue-rotate(0deg); }
+      100% { transform: scale(1.04); filter: hue-rotate(25deg); }
+    }
+
+    @keyframes gopuSignature {
+      0%, 100% { opacity: 0.35; transform: scale(0.96); }
+      50% { opacity: 1; transform: scale(1.03); }
+    }
+    .gopu-watermark {
+      animation: gopuSignature 6s ease-in-out infinite;
+    }
+
+    /* Main Working Canvas */
+    .canvas-viewport {
+      position: relative;
+      background: #ffffff;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85), 0 0 45px rgba(99, 102, 241, 0.25);
+      display: inline-block;
+      min-width: 300px;
+      min-height: 200px;
+      border-radius: 4px;
+      user-select: none;
+    }
+
+    #baseDocWrapper {
+      display: inline-block;
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      transform-origin: center center;
+    }
+
+    /* Overlay Interactive Box */
+    .draggable-box {
+      position: absolute;
+      user-select: none;
+      cursor: move;
+      border: 1.5px dashed transparent;
+      transform-origin: center center;
+      touch-action: none;
+    }
+
+    body:not(.exporting) .draggable-box:hover,
+    body:not(.exporting) .draggable-box.active {
+      border: 1.5px dashed #6366f1 !important;
+    }
+
+    /* Zero artifact cleanup when exporting */
+    body.exporting .draggable-box {
+      border: none !important;
+      outline: none !important;
+      box-shadow: none !important;
+    }
+    body.exporting .controls-tag {
+      display: none !important;
+    }
+
+    .controls-tag {
+      position: absolute;
+      top: -26px;
+      left: 0;
+      background: #4f46e5;
+      color: #ffffff;
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 4px 4px 0 0;
+      display: none;
+      gap: 6px;
+      align-items: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      z-index: 50;
+    }
+    body:not(.exporting) .draggable-box.active .controls-tag {
+      display: flex;
+    }
+
+    [contenteditable="true"] { outline: none; cursor: text; }
+
+    /* Custom Toolbar Scrollbars */
+    .custom-scroll::-webkit-scrollbar { height: 5px; width: 5px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.4); border-radius: 4px; }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col select-none">
+
+  <div class="bg-mesh"></div>
+
+  <!-- Intermittent Creator Watermark -->
+  <div class="fixed bottom-4 right-4 pointer-events-none z-50 gopu-watermark flex items-center gap-2 bg-slate-900/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-indigo-500/30 text-indigo-300 shadow-2xl">
+    <i class="fa-solid fa-wand-sparkles text-amber-400 text-xs"></i>
+    <span class="text-[11px] font-semibold font-['Poppins']">Mastered by <strong class="text-white">Gopu</strong></span>
+  </div>
+
+  <!-- Top Navigation Header -->
+  <header class="bg-slate-900/90 backdrop-blur-xl border-b border-indigo-500/20 px-4 sm:px-6 py-2.5 flex items-center justify-between sticky top-0 z-50">
+    <div class="flex items-center space-x-2.5">
+      <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-indigo-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+        <i class="fa-solid fa-palette text-sm sm:text-base"></i>
+      </div>
+      <div>
+        <h1 class="text-xs sm:text-sm font-extrabold tracking-wider uppercase bg-gradient-to-r from-amber-300 via-indigo-200 to-white bg-clip-text text-transparent font-['Poppins']">
+          Gopu Creative Studio Pro
+        </h1>
+        <p class="text-[10px] text-slate-400 font-medium hidden sm:block">Full-Throttle Photoshop & Document Engine</p>
+      </div>
+    </div>
+
+    <!-- Sync Indicator & Export Actions -->
+    <div class="flex items-center space-x-2 sm:space-x-3">
+      <div id="saveStatus" class="text-[10px] sm:text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+        <i class="fa-solid fa-database text-[10px]"></i>
+        <span class="hidden sm:inline">Database Synced</span>
+        <span class="sm:hidden">Saved</span>
+      </div>
+
+      <button onclick="exportCleanDoc('pdf')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition">
+        <i class="fa-solid fa-file-pdf text-rose-400"></i> <span class="hidden sm:inline">Export</span> PDF
+      </button>
+      <button onclick="exportCleanDoc('jpg')" class="px-3 sm:px-4 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-lg shadow-indigo-600/30 transition">
+        <i class="fa-solid fa-file-image"></i> <span class="hidden sm:inline">Export</span> JPG
+      </button>
+      <button onclick="resetWorkspace()" class="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition" title="Clear Canvas">
+        <i class="fa-solid fa-trash-can text-xs"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Level 1 Toolbar: Operations & Transforms -->
+  <section class="bg-slate-900/85 backdrop-blur-md border-b border-indigo-500/20 px-4 sm:px-6 py-2 flex items-center gap-2 text-xs z-40 overflow-x-auto custom-scroll">
+    
+    <!-- Upload Document File -->
+    <label class="cursor-pointer flex-shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 border border-slate-700 transition">
+      <i class="fa-solid fa-cloud-arrow-up text-amber-400"></i>
+      <span>Upload</span>
+      <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.pdf" class="hidden" onchange="loadDocument(event)">
+    </label>
+
+    <!-- Canvas Rotate & Zoom Control -->
+    <div class="flex items-center gap-1 bg-slate-800/80 border border-slate-700 rounded-lg p-0.5 flex-shrink-0">
+      <button onclick="rotateDocument(-90)" class="p-1.5 hover:bg-slate-700 rounded text-indigo-300" title="Rotate Document Left ([)"><i class="fa-solid fa-rotate-left"></i></button>
+      <button onclick="rotateDocument(90)" class="p-1.5 hover:bg-slate-700 rounded text-indigo-300" title="Rotate Document Right (])"><i class="fa-solid fa-rotate-right"></i></button>
+      <span class="text-slate-600 text-[10px] mx-0.5">|</span>
+      <button onclick="zoomCanvas(0.1)" class="p-1.5 hover:bg-slate-700 rounded text-emerald-300" title="Zoom In (Ctrl +)"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+      <button onclick="zoomCanvas(-0.1)" class="p-1.5 hover:bg-slate-700 rounded text-emerald-300" title="Zoom Out (Ctrl -)"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+      <button onclick="resetZoom()" class="px-1.5 py-0.5 hover:bg-slate-700 rounded text-[10px] text-slate-400" title="Reset Zoom (Ctrl 0)">100%</button>
+    </div>
+
+    <div class="h-4 w-px bg-slate-700 flex-shrink-0"></div>
+
+    <!-- Insert Overlay Boxes -->
+    <button onclick="addTextBox()" class="flex-shrink-0 bg-indigo-600/30 hover:bg-indigo-600/40 text-indigo-200 border border-indigo-500/40 px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition">
+      <i class="fa-solid fa-font text-indigo-400"></i> Text
+    </button>
+    <label class="flex-shrink-0 cursor-pointer bg-purple-600/30 hover:bg-purple-600/40 text-purple-200 border border-purple-500/40 px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 transition">
+      <i class="fa-solid fa-image text-purple-400"></i>
+      <span>Photo</span>
+      <input type="file" id="photoInput" accept="image/*" class="hidden" onchange="addPhotoBox(event)">
+    </label>
+
+    <div class="h-4 w-px bg-slate-700 flex-shrink-0"></div>
+
+    <!-- Element Transform (Angle, Scale, Flip) -->
+    <div class="flex items-center gap-1 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 flex-shrink-0">
+      <i class="fa-solid fa-arrows-rotate text-indigo-400 text-[10px]" title="Angle"></i>
+      <input type="number" id="elemRotation" value="0" min="-360" max="360" class="w-10 bg-transparent text-center text-slate-200 text-xs outline-none" title="Rotate Item (°)" oninput="updateActiveTransform()">
+      <span class="text-slate-500 text-[10px]">°</span>
+
+      <span class="text-slate-600 mx-1">|</span>
+
+      <i class="fa-solid fa-expand text-indigo-400 text-[10px]" title="Scale Element"></i>
+      <input type="number" id="elemScale" value="1.0" min="0.2" max="4.0" step="0.1" class="w-10 bg-transparent text-center text-slate-200 text-xs outline-none" title="Scale Item" oninput="updateActiveTransform()">
+
+      <span class="text-slate-600 mx-1">|</span>
+
+      <button onclick="toggleFlip('X')" class="p-1 hover:bg-slate-700 rounded text-slate-300" title="Flip Horizontal"><i class="fa-solid fa-arrows-left-right"></i></button>
+      <button onclick="toggleFlip('Y')" class="p-1 hover:bg-slate-700 rounded text-slate-300" title="Flip Vertical"><i class="fa-solid fa-arrows-up-down"></i></button>
+    </div>
+
+    <!-- Layer Ordering & Clone -->
+    <div class="flex items-center gap-0.5 bg-slate-800 border border-slate-700 rounded-lg p-0.5 flex-shrink-0">
+      <button onclick="changeLayer(1)" class="p-1.5 hover:bg-slate-700 rounded text-slate-300" title="Bring to Front"><i class="fa-solid fa-arrow-up"></i></button>
+      <button onclick="changeLayer(-1)" class="p-1.5 hover:bg-slate-700 rounded text-slate-300" title="Send to Back"><i class="fa-solid fa-arrow-down"></i></button>
+      <button onclick="duplicateActiveBox()" class="p-1.5 hover:bg-slate-700 rounded text-slate-300" title="Duplicate Box"><i class="fa-regular fa-clone"></i></button>
+    </div>
+  </section>
+
+  <!-- Level 2 Toolbar: Full Photoshop-Style Formatting Ribbon -->
+  <section class="bg-slate-900/70 backdrop-blur-md border-b border-indigo-500/15 px-4 sm:px-6 py-2 flex items-center gap-2 text-xs z-30 overflow-x-auto custom-scroll">
+    
+    <!-- Fonts Dropdown -->
+    <select id="fontSelect" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-200 outline-none text-xs flex-shrink-0" onchange="applyBoxStyle('fontFamily', this.value)">
+      <optgroup label="English Fonts">
+        <option value="'Inter', sans-serif">Inter</option>
+        <option value="'Poppins', sans-serif">Poppins</option>
+        <option value="'Roboto', sans-serif">Roboto</option>
+        <option value="Arial, sans-serif">Arial</option>
+        <option value="'Times New Roman', serif">Times Roman</option>
+        <option value="'Cinzel', serif">Cinzel (Certificate)</option>
+      </optgroup>
+      <optgroup label="Bengali Fonts">
+        <option value="'Noto Sans Bengali', sans-serif">Bengali (Noto)</option>
+        <option value="'Hind Siliguri', sans-serif">Bengali (Hind)</option>
+        <option value="'Tiro Bangla', serif">Tiro Bangla</option>
+      </optgroup>
+    </select>
+
+    <input type="number" id="fontSize" value="14" min="6" max="100" class="w-11 bg-slate-800 border border-slate-700 rounded-lg px-1 py-1 text-slate-200 text-center text-xs flex-shrink-0" title="Font Size" onchange="applyBoxStyle('fontSize', this.value + 'px')">
+
+    <!-- Typography Styles -->
+    <div class="flex items-center gap-0.5 bg-slate-800/80 border border-slate-700 rounded-lg p-0.5 flex-shrink-0">
+      <button onclick="toggleBold()" class="w-6 h-6 hover:bg-slate-700 rounded font-bold text-xs" title="Bold">B</button>
+      <button onclick="toggleItalic()" class="w-6 h-6 hover:bg-slate-700 rounded italic text-xs font-serif" title="Italic">I</button>
+      <button onclick="toggleUnderline()" class="w-6 h-6 hover:bg-slate-700 rounded underline text-xs" title="Underline">U</button>
+      <button onclick="toggleStrike()" class="w-6 h-6 hover:bg-slate-700 rounded line-through text-xs" title="Strikethrough">S</button>
+      <button onclick="toggleCase()" class="w-6 h-6 hover:bg-slate-700 rounded text-[11px] font-semibold" title="Toggle Case (aA)">aA</button>
+    </div>
+
+    <!-- Text Alignments -->
+    <div class="flex items-center gap-0.5 bg-slate-800/80 border border-slate-700 rounded-lg p-0.5 flex-shrink-0">
+      <button onclick="applyBoxStyle('textAlign', 'left')" class="p-1.5 hover:bg-slate-700 rounded text-slate-300" title="Align Left"><i class="fa-solid fa-align-left"></i></button>
+      <button onclick="applyBoxStyle('textAlign', 'center')" class="p-1.5 hover:bg-slate-700 rounded text-slate-300" title="Align Center"><i class="fa-solid fa-align-center"></i></button>
+      <button onclick="applyBoxStyle('textAlign', 'right')" class="p-1.5 hover:bg-slate-700 rounded text-slate-300" title="Align Right"><i class="fa-solid fa-align-right"></i></button>
+    </div>
+
+    <!-- Letter Spacing & Line Height -->
+    <div class="flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 flex-shrink-0">
+      <i class="fa-solid fa-arrows-left-right text-slate-400 text-[10px]" title="Letter Spacing"></i>
+      <input type="number" id="letterSpacing" min="-3" max="15" step="0.5" value="0" class="w-10 bg-transparent text-center text-slate-200 text-xs outline-none" title="Letter Spacing (px)" oninput="applyBoxStyle('letterSpacing', this.value + 'px')">
+      
+      <span class="text-slate-600 mx-1">|</span>
+
+      <i class="fa-solid fa-arrows-up-down text-slate-400 text-[10px]" title="Line Height"></i>
+      <input type="number" id="lineHeight" min="0.8" max="3" step="0.1" value="1.2" class="w-10 bg-transparent text-center text-slate-200 text-xs outline-none" title="Line Height" oninput="applyBoxStyle('lineHeight', this.value)">
+    </div>
+
+    <!-- Soft Shadow Toggle -->
+    <button onclick="toggleShadow()" class="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 flex-shrink-0" title="Toggle Soft Drop Shadow">
+      <i class="fa-solid fa-cube text-indigo-400"></i>
+    </button>
+
+    <!-- Colors & Pipette Eyedropper -->
+    <div class="flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 flex-shrink-0">
+      <span class="text-slate-400 text-[10px]">Text:</span>
+      <input type="color" id="fontColor" value="#000000" class="w-4 h-4 bg-transparent cursor-pointer" onchange="applyBoxStyle('color', this.value)">
+    </div>
+
+    <div class="flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 flex-shrink-0">
+      <span class="text-slate-400 text-[10px]">BG:</span>
+      <input type="color" id="boxBgColor" value="#ffffff" class="w-4 h-4 bg-transparent cursor-pointer" onchange="applyBoxStyle('backgroundColor', this.value)">
+      <button onclick="pickPipetteColor()" class="ml-1 text-indigo-400 hover:text-white" title="Screen Eyedropper"><i class="fa-solid fa-eye-dropper"></i></button>
+    </div>
+
+    <!-- Opacity -->
+    <div class="flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 flex-shrink-0">
+      <i class="fa-solid fa-droplet-slash text-slate-400 text-[10px]" title="Opacity"></i>
+      <input type="range" id="boxOpacity" min="10" max="100" value="100" class="w-12 h-1 accent-indigo-500 cursor-pointer" title="Opacity" oninput="applyBoxStyle('opacity', this.value / 100)">
+    </div>
+
+    <!-- Photo Filters (Brightness, Contrast, Grayscale, Radius) -->
+    <div class="flex items-center gap-1.5 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 flex-shrink-0">
+      <i class="fa-solid fa-sun text-amber-400 text-[10px]" title="Brightness"></i>
+      <input type="range" id="imgBrightness" min="40" max="180" value="100" class="w-10 h-1 accent-amber-500 cursor-pointer" title="Brightness" oninput="applyFilters()">
+
+      <i class="fa-solid fa-circle-half-stroke text-blue-400 text-[10px]" title="Contrast"></i>
+      <input type="range" id="imgContrast" min="40" max="180" value="100" class="w-10 h-1 accent-blue-500 cursor-pointer" title="Contrast" oninput="applyFilters()">
+
+      <button onclick="toggleGrayscale()" class="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-white text-[10px]" title="Toggle B&W / Grayscale">B&W</button>
+
+      <span class="text-slate-600 mx-0.5">|</span>
+
+      <i class="fa-solid fa-border-all text-slate-400 text-[10px]" title="Corner Radius"></i>
+      <input type="number" id="cornerRadius" min="0" max="150" value="0" class="w-8 bg-transparent text-center text-slate-200 text-xs outline-none" title="Corner Radius (px)" oninput="applyRadius(this.value)">
+    </div>
+  </section>
+
+  <!-- Workspace Container (Listens to Mouse Wheel) -->
+  <main id="mainWorkspace" class="flex-1 overflow-auto p-4 sm:p-12 flex justify-center items-start z-10">
+    <div id="zoomWrapper" style="transform: scale(1); transform-origin: top center; transition: transform 0.08s ease-out;">
+      <div id="canvasViewport" class="canvas-viewport">
+        <!-- Rotatable Base Document Wrapper -->
+        <div id="baseDocWrapper">
+          <img id="baseImg" class="block max-w-full pointer-events-none hidden" alt="Base Document" />
+        </div>
+        
+        <div id="emptyNotice" class="py-24 px-8 sm:px-16 text-center text-slate-500">
+          <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-3 text-indigo-400">
+            <i class="fa-solid fa-wand-magic-sparkles text-2xl"></i>
+          </div>
+          <p class="text-sm font-semibold text-slate-300">Upload Any Document, Card, Photo or PDF</p>
+          <p class="text-xs text-slate-500 mt-1 max-w-xs sm:max-w-md mx-auto">
+            Full-suite Photoshop overlay controls. Mouse-wheel zoom enabled. Zero dashed-lines on export!
+          </p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    const canvas = document.getElementById('canvasViewport');
+    const baseDocWrapper = document.getElementById('baseDocWrapper');
+    const baseImg = document.getElementById('baseImg');
+    const emptyNotice = document.getElementById('emptyNotice');
+    const zoomWrapper = document.getElementById('zoomWrapper');
+    const mainWorkspace = document.getElementById('mainWorkspace');
+    
+    let activeBox = null;
+    let docRotation = 0;
+    let currentZoom = 1.0;
+    let isGrayscale = false;
+
+    /* ========================================================
+       1. INDEXED-DB PERSISTENT DATABASE (UNLIMITED STORAGE)
+       ======================================================== */
+    const DB_NAME = 'GopuMasterDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'studioStore';
+
+    function openDatabase() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function dbSave(key, value) {
+      try {
+        const db = await openDatabase();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put(value, key);
+      } catch (err) {
+        console.error("DB Save Failed", err);
+      }
+    }
+
+    async function dbGet(key) {
+      try {
+        const db = await openDatabase();
+        return new Promise((resolve) => {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const req = tx.objectStore(STORE_NAME).get(key);
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => resolve(null);
+        });
+      } catch (err) {
+        return null;
+      }
+    }
+
+    /* ========================================================
+       2. MOUSE WHEEL ZOOM & KEYBOARD SHORTCUTS
+       ======================================================== */
+    mainWorkspace.addEventListener('wheel', (e) => {
+      if (e.ctrlKey || e.target.closest('#zoomWrapper')) {
+        e.preventDefault();
+        const zoomDelta = e.deltaY < 0 ? 0.08 : -0.08;
+        zoomCanvas(zoomDelta);
+      }
+    }, { passive: false });
+
+    window.addEventListener('keydown', (e) => {
+      const isInput = e.target.tagName === 'INPUT' || e.target.isContentEditable;
+
+      if (e.ctrlKey && (e.key === '=' || e.key === '+')) {
+        e.preventDefault(); zoomCanvas(0.1);
+      } else if (e.ctrlKey && e.key === '-') {
+        e.preventDefault(); zoomCanvas(-0.1);
+      } else if (e.ctrlKey && e.key === '0') {
+        e.preventDefault(); resetZoom();
+      }
+
+      if (!isInput) {
+        if (e.key === '[') rotateDocument(-90);
+        if (e.key === ']') rotateDocument(90);
+      }
+
+      if ((e.key === 'Delete' || e.key === 'Backspace') && activeBox && !isInput) {
+        activeBox.remove();
+        activeBox = null;
+        triggerSync();
+      }
+
+      if (activeBox && !isInput && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1;
+        let left = parseInt(activeBox.style.left) || 0;
+        let top = parseInt(activeBox.style.top) || 0;
+
+        if (e.key === 'ArrowUp') top -= step;
+        if (e.key === 'ArrowDown') top += step;
+        if (e.key === 'ArrowLeft') left -= step;
+        if (e.key === 'ArrowRight') left += step;
+
+        activeBox.style.left = left + 'px';
+        activeBox.style.top = top + 'px';
+        triggerSync();
+      }
+    });
+
+    /* ========================================================
+       3. DOCUMENT LOADING (PDF & HIGH-RES IMAGES)
+       ======================================================== */
+    async function loadDocument(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (ext === 'pdf') {
+        const buf = await file.arrayBuffer();
+        const doc = await pdfjsLib.getDocument({ data: buf }).promise;
+        const page = await doc.getPage(1);
+        const viewport = page.getViewport({ scale: 2.0 });
+
+        const c = document.createElement('canvas');
+        c.width = viewport.width;
+        c.height = viewport.height;
+        await page.render({ canvasContext: c.getContext('2d'), viewport }).promise;
+        baseImg.src = c.toDataURL('image/png');
+      } else {
+        const reader = new FileReader();
+        reader.onload = (evt) => { baseImg.src = evt.target.result; };
+        reader.readAsDataURL(file);
+      }
+
+      baseImg.onload = () => {
+        emptyNotice.style.display = 'none';
+        baseImg.classList.remove('hidden');
+        docRotation = 0;
+        updateDocRotation();
+        triggerSync();
+      };
+    }
+
+    function rotateDocument(deg) {
+      docRotation = (docRotation + deg) % 360;
+      updateDocRotation();
+      triggerSync();
+    }
+
+    function updateDocRotation() {
+      baseDocWrapper.style.transform = `rotate(${docRotation}deg)`;
+    }
+
+    function zoomCanvas(delta) {
+      currentZoom = Math.min(Math.max(0.3, currentZoom + delta), 3.0);
+      zoomWrapper.style.transform = `scale(${currentZoom})`;
+    }
+
+    function resetZoom() {
+      currentZoom = 1.0;
+      zoomWrapper.style.transform = 'scale(1)';
+    }
+
+    /* ========================================================
+       4. ELEMENT GENERATORS & INTERACTION ENGINE
+       ======================================================== */
+    function addTextBox(txt = "Text Here", x = 50, y = 50) {
+      const box = document.createElement('div');
+      box.className = 'draggable-box active';
+      box.dataset.rotation = "0";
+      box.dataset.scale = "1";
+      box.dataset.flipx = "1";
+      box.dataset.flipy = "1";
+      box.style.left = x + 'px';
+      box.style.top = y + 'px';
+      box.style.backgroundColor = '#ffffff';
+      box.style.color = '#000000';
+      box.style.fontSize = '14px';
+      box.style.fontFamily = "'Inter', sans-serif";
+      box.style.padding = '2px 4px';
+      box.style.lineHeight = '1.2';
+      box.style.minWidth = '30px';
+      box.style.zIndex = '10';
+
+      box.innerHTML = `
+        <div class="controls-tag">
+          <i class="fa-solid fa-arrows-up-down-left-right text-[9px]"></i>
+          <span>Text</span>
+          <i class="fa-solid fa-xmark ml-1 cursor-pointer hover:text-rose-300" onclick="this.closest('.draggable-box').remove(); triggerSync();"></i>
+        </div>
+        <div contenteditable="true" spellcheck="false">${txt}</div>
+      `;
+
+      initPointerDrag(box);
+      canvas.appendChild(box);
+      selectElement(box);
+      triggerSync();
+    }
+
+    function addPhotoBox(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const box = document.createElement('div');
+        box.className = 'draggable-box active';
+        box.dataset.rotation = "0";
+        box.dataset.scale = "1";
+        box.dataset.flipx = "1";
+        box.dataset.flipy = "1";
+        box.style.left = '60px';
+        box.style.top = '60px';
+        box.style.width = '110px';
+        box.style.height = '130px';
+        box.style.resize = 'both';
+        box.style.overflow = 'hidden';
+        box.style.zIndex = '10';
+
+        box.innerHTML = `
+          <div class="controls-tag">
+            <i class="fa-solid fa-image text-[9px]"></i>
+            <span>Photo</span>
+            <i class="fa-solid fa-xmark ml-1 cursor-pointer hover:text-rose-300" onclick="this.closest('.draggable-box').remove(); triggerSync();"></i>
+          </div>
+          <img src="${evt.target.result}" class="w-full h-full object-cover pointer-events-none" />
+        `;
+
+        initPointerDrag(box);
+        canvas.appendChild(box);
+        selectElement(box);
+        triggerSync();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function initPointerDrag(el) {
+      let isDragging = false;
+      let startX, startY, origX, origY;
+
+      const onStart = (clientX, clientY, target) => {
+        if (target.isContentEditable) return;
+        selectElement(el);
+        isDragging = true;
+        startX = clientX;
+        startY = clientY;
+        origX = parseInt(el.style.left, 10) || 0;
+        origY = parseInt(el.style.top, 10) || 0;
+      };
+
+      const onMove = (clientX, clientY) => {
+        if (!isDragging) return;
+        el.style.left = (origX + (clientX - startX) / currentZoom) + 'px';
+        el.style.top = (origY + (clientY - startY) / currentZoom) + 'px';
+      };
+
+      const onEnd = () => {
+        if (isDragging) {
+          isDragging = false;
+          triggerSync();
+        }
+      };
+
+      el.addEventListener('mousedown', (e) => {
+        onStart(e.clientX, e.clientY, e.target);
+        const mm = (m) => onMove(m.clientX, m.clientY);
+        const mu = () => {
+          onEnd();
+          window.removeEventListener('mousemove', mm);
+          window.removeEventListener('mouseup', mu);
+        };
+        window.addEventListener('mousemove', mm);
+        window.addEventListener('mouseup', mu);
+      });
+
+      el.addEventListener('touchstart', (e) => {
+        const touch = e.touches[0];
+        onStart(touch.clientX, touch.clientY, e.target);
+      }, { passive: true });
+
+      el.addEventListener('touchmove', (e) => {
+        const touch = e.touches[0];
+        onMove(touch.clientX, touch.clientY);
+      }, { passive: true });
+
+      el.addEventListener('touchend', onEnd);
+
+      const textNode = el.querySelector('[contenteditable="true"]');
+      if (textNode) textNode.addEventListener('input', triggerSync);
+    }
+
+    function selectElement(el) {
+      if (activeBox) activeBox.classList.remove('active');
+      activeBox = el;
+      if (el) {
+        el.classList.add('active');
+        document.getElementById('fontSize').value = parseInt(el.style.fontSize) || 14;
+        document.getElementById('fontColor').value = toHex(el.style.color || '#000000');
+        document.getElementById('boxBgColor').value = toHex(el.style.backgroundColor || '#ffffff');
+        document.getElementById('elemRotation').value = el.dataset.rotation || 0;
+        document.getElementById('elemScale').value = el.dataset.scale || 1.0;
+        document.getElementById('letterSpacing').value = parseFloat(el.style.letterSpacing) || 0;
+        document.getElementById('lineHeight').value = parseFloat(el.style.lineHeight) || 1.2;
+        document.getElementById('cornerRadius').value = parseInt(el.style.borderRadius) || 0;
+        document.getElementById('boxOpacity').value = (parseFloat(el.style.opacity) || 1) * 100;
+        if (el.style.fontFamily) document.getElementById('fontSelect').value = el.style.fontFamily;
+      }
+    }
+
+    /* ========================================================
+       5. ALL STYLING & PHOTOSHOP ADJUSTMENT METHODS
+       ======================================================== */
+    function applyBoxStyle(prop, val) {
+      if (!activeBox) return;
+      activeBox.style[prop] = val;
+      triggerSync();
+    }
+
+    function updateActiveTransform() {
+      if (!activeBox) return;
+      const r = document.getElementById('elemRotation').value;
+      const s = document.getElementById('elemScale').value;
+      const fx = activeBox.dataset.flipx || 1;
+      const fy = activeBox.dataset.flipy || 1;
+      activeBox.dataset.rotation = r;
+      activeBox.dataset.scale = s;
+      activeBox.style.transform = `rotate(${r}deg) scale(${s * fx}, ${s * fy})`;
+      triggerSync();
+    }
+
+    function toggleFlip(axis) {
+      if (!activeBox) return;
+      if (axis === 'X') activeBox.dataset.flipx = (activeBox.dataset.flipx == -1) ? 1 : -1;
+      if (axis === 'Y') activeBox.dataset.flipy = (activeBox.dataset.flipy == -1) ? 1 : -1;
+      updateActiveTransform();
+    }
+
+    function toggleBold() {
+      if (!activeBox) return;
+      activeBox.style.fontWeight = activeBox.style.fontWeight === 'bold' ? 'normal' : 'bold';
+      triggerSync();
+    }
+
+    function toggleItalic() {
+      if (!activeBox) return;
+      activeBox.style.fontStyle = activeBox.style.fontStyle === 'italic' ? 'normal' : 'italic';
+      triggerSync();
+    }
+
+    function toggleUnderline() {
+      if (!activeBox) return;
+      activeBox.style.textDecoration = activeBox.style.textDecoration.includes('underline') ? 'none' : 'underline';
+      triggerSync();
+    }
+
+    function toggleStrike() {
+      if (!activeBox) return;
+      activeBox.style.textDecoration = activeBox.style.textDecoration.includes('line-through') ? 'none' : 'line-through';
+      triggerSync();
+    }
+
+    function toggleCase() {
+      if (!activeBox) return;
+      activeBox.style.textTransform = activeBox.style.textTransform === 'uppercase' ? 'none' : 'uppercase';
+      triggerSync();
+    }
+
+    function toggleShadow() {
+      if (!activeBox) return;
+      activeBox.style.textShadow = activeBox.style.textShadow ? '' : '1px 1px 3px rgba(0,0,0,0.5)';
+      triggerSync();
+    }
+
+    function applyFilters() {
+      if (!activeBox) return;
+      const b = document.getElementById('imgBrightness').value;
+      const c = document.getElementById('imgContrast').value;
+      const g = isGrayscale ? 100 : 0;
+      const img = activeBox.querySelector('img');
+      if (img) img.style.filter = `brightness(${b}%) contrast(${c}%) grayscale(${g}%)`;
+      triggerSync();
+    }
+
+    function toggleGrayscale() {
+      isGrayscale = !isGrayscale;
+      applyFilters();
+    }
+
+    function applyRadius(val) {
+      if (!activeBox) return;
+      activeBox.style.borderRadius = val + 'px';
+      triggerSync();
+    }
+
+    function changeLayer(step) {
+      if (!activeBox) return;
+      let currentZ = parseInt(activeBox.style.zIndex) || 10;
+      activeBox.style.zIndex = Math.max(1, currentZ + step);
+      triggerSync();
+    }
+
+    async function pickPipetteColor() {
+      if (!window.EyeDropper) return;
+      try {
+        const res = await (new EyeDropper()).open();
+        document.getElementById('boxBgColor').value = res.sRGBHex;
+        applyBoxStyle('backgroundColor', res.sRGBHex);
+      } catch (e) {}
+    }
+
+    function duplicateActiveBox() {
+      if (!activeBox) return;
+      const clone = activeBox.cloneNode(true);
+      clone.style.left = (parseInt(activeBox.style.left) + 20) + 'px';
+      clone.style.top = (parseInt(activeBox.style.top) + 20) + 'px';
+      initPointerDrag(clone);
+      canvas.appendChild(clone);
+      selectElement(clone);
+      triggerSync();
+    }
+
+    canvas.addEventListener('click', (e) => {
+      if (e.target === canvas || e.target === baseImg || e.target === baseDocWrapper) selectElement(null);
+    });
+
+    /* ========================================================
+       6. DATABASE SYNC (AUTO-SAVE)
+       ======================================================== */
+    let saveDebounce;
+    function triggerSync() {
+      const status = document.getElementById('saveStatus');
+      status.innerHTML = `<i class="fa-solid fa-arrows-rotate fa-spin text-[10px]"></i><span>Syncing...</span>`;
+      status.className = "text-[10px] sm:text-xs font-medium px-2.5 py-1 rounded-full bg-amber-950/60 text-amber-400 border border-amber-500/30 flex items-center gap-1.5";
+
+      clearTimeout(saveDebounce);
+      saveDebounce = setTimeout(async () => {
+        await dbSave('canvas_html', canvas.innerHTML);
+        await dbSave('base_img', baseImg.src);
+        await dbSave('doc_rot', docRotation);
+
+        status.innerHTML = `<i class="fa-solid fa-database text-[10px]"></i><span class="hidden sm:inline">Database Synced</span><span class="sm:hidden">Saved</span>`;
+        status.className = "text-[10px] sm:text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5";
+      }, 300);
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const savedDoc = await dbGet('base_img');
+      const savedHTML = await dbGet('canvas_html');
+      docRotation = (await dbGet('doc_rot')) || 0;
+
+      if (savedDoc && savedHTML) {
+        canvas.innerHTML = savedHTML;
+        const restoredBase = document.getElementById('baseImg');
+        restoredBase.src = savedDoc;
+        restoredBase.classList.remove('hidden');
+        document.getElementById('emptyNotice').style.display = 'none';
+        updateDocRotation();
+        canvas.querySelectorAll('.draggable-box').forEach(initPointerDrag);
+      }
+    });
+
+    async function resetWorkspace() {
+      if (confirm("Reset everything to empty canvas?")) {
+        const db = await openDatabase();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).clear();
+        location.reload();
+      }
+    }
+
+    /* ========================================================
+       7. BULLETPROOF 100% CLEAN PDF & JPG EXPORT (NO WHITE BOXES)
+       ======================================================== */
+    function exportCleanDoc(format) {
+      selectElement(null);
+      document.body.classList.add('exporting');
+
+      const originalZoom = currentZoom;
+      zoomWrapper.style.transform = 'scale(1)';
+
+      setTimeout(() => {
+        html2canvas(canvas, {
+          scale: 2.5,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff'
+        }).then((renderedCanvas) => {
+          document.body.classList.remove('exporting');
+          zoomWrapper.style.transform = `scale(${originalZoom})`;
+
+          if (format === 'jpg') {
+            const link = document.createElement('a');
+            link.download = 'GopuStudio_Edited.jpg';
+            link.href = renderedCanvas.toDataURL('image/jpeg', 0.98);
+            link.click();
+          } 
+          else if (format === 'pdf') {
+            const { jsPDF } = window.jspdf;
+            const imgData = renderedCanvas.toDataURL('image/jpeg', 0.98);
+            const w = renderedCanvas.width;
+            const h = renderedCanvas.height;
+            const orientation = w > h ? 'l' : 'p';
+
+            const pdf = new jsPDF({
+              orientation: orientation,
+              unit: 'px',
+              format: [w, h]
+            });
+
+            pdf.addImage(imgData, 'JPEG', 0, 0, w, h);
+            pdf.save('GopuStudio_Edited.pdf');
+          }
+        }).catch((err) => {
+          alert('Export Error: ' + err.message);
+          document.body.classList.remove('exporting');
+          zoomWrapper.style.transform = `scale(${originalZoom})`;
+        });
+      }, 80);
+    }
+
+    function toHex(rgb) {
+      if (!rgb || rgb.startsWith('#')) return rgb || '#ffffff';
+      const res = rgb.match(/\d+/g);
+      if (!res || res.length < 3) return '#ffffff';
+      return "#" + ((1 << 24) + (parseInt(res[0]) << 16) + (parseInt(res[1]) << 8) + parseInt(res[2])).toString(16).slice(1);
+    }
+  </script>
+</body>
+</html>
